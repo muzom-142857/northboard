@@ -15,13 +15,49 @@
                     <small>{{ board['created'] }}</small>
                 </div>
                 <div class="d-flex w-100 justify-content-end mt-2">
-                    <form action="{{ url_for('delete_board', board_id=board['id']) }}" method="post" onsubmit="return confirm('정말로 '{{ board['name'] }}게시판'을 삭제하시겠습니까? 이 게시판의 모든 게시물과 댓글도 삭제됩니다.');">
-                        <button type="submit" class="btn btn-danger btn-sm">삭제</button>
-                    </form>
+                    <button type="button" class="btn btn-danger btn-sm delete-board-btn" data-bs-toggle="modal" data-bs-target="#deleteBoardModal" data-board-id="{{ board['id'] }}" data-board-name="{{ board['name'] }}">삭제</button>
                 </div>
             </div>
         {% else %}
             <p>생성된 게시판이 없습니다.</p>
         {% endfor %}
     </div>
+
+    <!-- Delete Board Modal -->
+    <div class="modal fade" id="deleteBoardModal" tabindex="-1" aria-labelledby="deleteBoardModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteBoardModalLabel">게시판 삭제 확인</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p><strong id="modalBoardName"></strong> 게시판을 정말로 삭제하시겠습니까? 이 게시판의 모든 게시물과 댓글도 삭제됩니다.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
+                    <form id="deleteBoardForm" method="post">
+                        <button type="submit" class="btn btn-danger">삭제</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var deleteBoardModal = document.getElementById('deleteBoardModal');
+            deleteBoardModal.addEventListener('show.bs.modal', function (event) {
+                var button = event.relatedTarget; // Button that triggered the modal
+                var boardId = button.getAttribute('data-board-id');
+                var boardName = button.getAttribute('data-board-name');
+
+                var modalBoardName = deleteBoardModal.querySelector('#modalBoardName');
+                var deleteBoardForm = deleteBoardModal.querySelector('#deleteBoardForm');
+
+                modalBoardName.textContent = "'" + boardName + "'";
+                deleteBoardForm.action = "{{ url_for('delete_board', board_id=0) }}".replace('0', boardId);
+            });
+        });
+    </script>
 {% endblock %}
