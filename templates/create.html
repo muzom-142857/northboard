@@ -4,7 +4,7 @@
 
 {% block content %}
     <h1>새 글 작성 - {{ board['name'] }}</h1>
-    <form method="post">
+    <form method="post" id="postForm">
         <div class="form-group">
             <label for="title">제목</label>
             <input type="text" name="title" id="title" class="form-control" required>
@@ -63,6 +63,12 @@
                     }
                 });
             }
+
+            // 폼 제출 시 URL 로깅 및 기본 동작 방지 (디버깅용)
+            $('#postForm').on('submit', function(e) {
+                console.log("Form submitted to: " + $(this).attr('action'));
+                // e.preventDefault(); // 실제 제출을 막으려면 이 주석을 해제하세요.
+            });
         });
     </script>
 {% endblock %}
