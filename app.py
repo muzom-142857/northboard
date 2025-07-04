@@ -48,17 +48,22 @@ def index():
 # 특정 게시판의 게시물 목록 표시
 @app.route('/board/<int:board_id>')
 def board_index(board_id):
-    conn = get_db_connection()
-    board = conn.execute('SELECT * FROM boards WHERE id = ?', (board_id,)).fetchone()
-    if board is None:
-        flash('게시판을 찾을 수 없습니다!')
-        return redirect(url_for('index'))
+    try:
+        conn = get_db_connection()
+        board = conn.execute('SELECT * FROM boards WHERE id = ?', (board_id,)).fetchone()
+        if board is None:
+            flash('게시판을 찾을 수 없습니다!')
+            return redirect(url_for('index'))
 
-    # 공지사항 게시물과 일반 게시물을 분리하여 가져옴
-    notices = conn.execute('SELECT * FROM posts WHERE board_id = ? AND is_notice = 1 ORDER BY created DESC', (board_id,)).fetchall()
-    posts = conn.execute('SELECT * FROM posts WHERE board_id = ? AND is_notice = 0 ORDER BY created DESC', (board_id,)).fetchall()
-    conn.close()
-    return render_template('board_index.html', board=board, notices=notices, posts=posts)
+        # 공지사항 게시물과 일반 게시물을 분리하여 가져옴
+        notices = conn.execute('SELECT * FROM posts WHERE board_id = ? AND is_notice = 1 ORDER BY created DESC', (board_id,)).fetchall()
+        posts = conn.execute('SELECT * FROM posts WHERE board_id = ? AND is_notice = 0 ORDER BY created DESC', (board_id,)).fetchall()
+        conn.close()
+        return render_template('board_index.html', board=board, notices=notices, posts=posts)
+    except Exception as e:
+        app.logger.error(f"게시판 인덱스 로드 중 오류 발생: {e}", exc_info=True)
+        flash('게시판을 불러오는 중 오류가 발생했습니다. 다시 시도해주세요.')
+        return redirect(url_for('index'))
 
 # 게시판 생성
 @app.route('/boards/create', methods=('GET', 'POST'))
