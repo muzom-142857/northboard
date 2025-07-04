@@ -90,6 +90,7 @@ def create_board():
 
 # 게시판 삭제
 @app.route('/boards/delete/<int:board_id>', methods=('POST',))
+def delete_board(board_id):
     app.logger.info(f"게시판 삭제 요청 수신: {request.url}, board_id: {board_id}")
     conn = get_db_connection()
     board = conn.execute('SELECT * FROM boards WHERE id = ?', (board_id,)).fetchone()
