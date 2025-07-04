@@ -138,13 +138,19 @@ def create(board_id):
         elif not author:
             flash('작성자는 필수입니다!')
         else:
-            conn = get_db_connection()
-            conn.execute('INSERT INTO posts (board_id, title, content, author, is_notice) VALUES (?, ?, ?, ?, ?)',
-                         (board_id, title, content, author, is_notice))
-            conn.commit()
-            conn.close()
-            flash('게시물이 성공적으로 작성되었습니다.')
-            return redirect(url_for('board_index', board_id=board_id))
+            try:
+                conn = get_db_connection()
+                conn.execute('INSERT INTO posts (board_id, title, content, author, is_notice) VALUES (?, ?, ?, ?, ?)',
+                             (board_id, title, content, author, is_notice))
+                conn.commit()
+                conn.close()
+                flash('게시물이 성공적으로 작성되었습니다.')
+                return redirect(url_for('board_index', board_id=board_id))
+            except Exception as e:
+                app.logger.error(f"게시물 생성 중 오류 발생: {e}", exc_info=True)
+                flash('게시물 생성 중 오류가 발생했습니다. 다시 시도해주세요.')
+                # 오류 발생 시에도 create 페이지로 돌아가도록 처리
+                return render_template('create.html', board=board)
 
     return render_template('create.html', board=board)
 
