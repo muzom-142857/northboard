@@ -90,7 +90,7 @@ def create_board():
 
 # 게시판 삭제
 @app.route('/boards/delete/<int:board_id>', methods=('POST',))
-def delete_board(board_id):
+    app.logger.info(f"게시판 삭제 요청 수신: {request.url}, board_id: {board_id}")
     conn = get_db_connection()
     board = conn.execute('SELECT * FROM boards WHERE id = ?', (board_id,)).fetchone()
 
@@ -128,31 +128,8 @@ def create(board_id):
         return redirect(url_for('index'))
 
     if request.method == 'POST':
+        app.logger.info(f"게시물 생성 요청 수신: {request.url}, 폼 데이터: {request.form}")
         title = request.form['title']
-        content = request.form['content']
-        author = request.form['author']
-        is_notice = request.form.get('is_notice', 0, type=int)
-
-        if not title:
-            flash('제목은 필수입니다!')
-        elif not author:
-            flash('작성자는 필수입니다!')
-        else:
-            try:
-                conn = get_db_connection()
-                conn.execute('INSERT INTO posts (board_id, title, content, author, is_notice) VALUES (?, ?, ?, ?, ?)',
-                             (board_id, title, content, author, is_notice))
-                conn.commit()
-                conn.close()
-                flash('게시물이 성공적으로 작성되었습니다.')
-                return redirect(url_for('board_index', board_id=board_id))
-            except Exception as e:
-                app.logger.error(f"게시물 생성 중 오류 발생: {e}", exc_info=True)
-                flash('게시물 생성 중 오류가 발생했습니다. 다시 시도해주세요.')
-                # 오류 발생 시에도 create 페이지로 돌아가도록 처리
-                return render_template('create.html', board=board)
-
-    return render_template('create.html', board=board)
 
 # 게시물 수정
 @app.route('/edit/<int:post_id>', methods=('GET', 'POST'))
