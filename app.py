@@ -76,6 +76,9 @@ def create_board():
                 return redirect(url_for('index'))
             except sqlite3.IntegrityError:
                 flash('이미 존재하는 이름입니다!') # 문구 변경
+            except Exception as e:
+                app.logger.error(f"게시판 생성 중 오류 발생: {e}", exc_info=True)
+                flash('게시판 생성 중 오류가 발생했습니다. 다시 시도해주세요.')
             finally:
                 conn.close()
     return render_template('create_board.html')
