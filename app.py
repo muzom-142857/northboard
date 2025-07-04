@@ -131,100 +131,27 @@ def create(board_id):
     if request.method == 'POST':
         app.logger.info(f"게시물 생성 요청 수신: {request.url}, 폼 데이터: {request.form}")
         title = request.form['title']
-
-# 게시물 수정
-@app.route('/edit/<int:post_id>', methods=('GET', 'POST'))
-def edit(post_id):
-    conn = get_db_connection()
-    post = conn.execute('SELECT * FROM posts WHERE id = ?', (post_id,)).fetchone()
-    conn.close()
-
-    if post is None:
-        flash('게시물을 찾을 수 없습니다!')
-        return redirect(url_for('index'))
-
-    if request.method == 'POST':
-        title = request.form['title']
         content = request.form['content']
+        author = request.form['author']
         is_notice = request.form.get('is_notice', 0, type=int)
 
         if not title:
             flash('제목은 필수입니다!')
+        elif not author:
+            flash('작성자는 필수입니다!')
         else:
-            conn = get_db_connection()
-            conn.execute('UPDATE posts SET title = ?, content = ?, is_notice = ? WHERE id = ?',
-                         (title, content, is_notice, post_id))
-            conn.commit()
-            conn.close()
-            flash('게시물이 성공적으로 수정되었습니다.')
-            return redirect(url_for('post', post_id=post_id))
+            try:
+                conn = get_db_connection()
+                conn.execute('INSERT INTO posts (board_id, title, content, author, is_notice) VALUES (?, ?, ?, ?, ?)',
+                             (board_id, title, content, author, is_notice))
+                conn.commit()
+                conn.close()
+                flash('게시물이 성공적으로 작성되었습니다.')
+                return redirect(url_for('board_index', board_id=board_id))
+            except Exception as e:
+                app.logger.error(f"게시물 생성 중 오류 발생: {e}", exc_info=True)
+                flash('게시물 생성 중 오류가 발생했습니다. 다시 시도해주세요.')
+                # 오류 발생 시에도 create 페이지로 돌아가도록 처리
+                return render_template('create.html', board=board)
 
-    return render_template('edit.html', post=post)
-
-# 게시물 삭제 (작성자 확인 제거)
-@app.route('/delete/<int:post_id>', methods=('POST',))
-def delete(post_id):
-    conn = get_db_connection()
-    post = conn.execute('SELECT * FROM posts WHERE id = ?', (post_id,)).fetchone()
-
-    if post is None:
-        flash('게시물을 찾을 수 없습니다!')
-        conn.close()
-        return redirect(url_for('index'))
-
-    conn.execute('DELETE FROM posts WHERE id = ?', (post_id,))
-    conn.commit()
-    conn.close()
-    flash('게시물이 성공적으로 삭제되었습니다.')
-    return redirect(url_for('board_index', board_id=post['board_id']))
-
-# 댓글 추가
-@app.route('/post/<int:post_id>/comment', methods=('POST',))
-def add_comment(post_id):
-    author = request.form['author']
-    content = request.form['content']
-
-    if not author or not content:
-        flash('작성자와 내용은 필수입니다!')
-    else:
-        conn = get_db_connection()
-        conn.execute('INSERT INTO comments (post_id, author, content) VALUES (?, ?, ?)',
-                     (post_id, author, content))
-        conn.commit()
-        conn.close()
-    return redirect(url_for('post', post_id=post_id))
-
-# 파일 업로드 라우트 (Summernote에서 사용)
-@app.route('/upload', methods=['POST'])
-def upload_file():
-    try:
-        if 'file' not in request.files:
-            app.logger.error("No file part in request.")
-            return jsonify({'error': 'No file part'}), 400
-        file = request.files['file']
-        if file.filename == '':
-            app.logger.error("No selected file.")
-            return jsonify({'error': 'No selected file'}), 400
-        if file and allowed_file(file.filename):
-            filename = secure_filename(file.filename)
-            # UPLOAD_FOLDER의 절대 경로를 사용하고, 디렉토리가 없으면 생성
-            upload_path = os.path.join(app.root_path, app.config['UPLOAD_FOLDER'])
-            os.makedirs(upload_path, exist_ok=True)
-            file.save(os.path.join(upload_path, filename))
-            app.logger.info(f"File saved to {os.path.join(upload_path, filename)}")
-            # 파일이 저장된 후의 URL 반환
-            return jsonify({'location': url_for('static', filename='uploads/' + filename)}), 200
-        app.logger.error("File type not allowed.")
-        return jsonify({'error': 'File type not allowed'}), 400
-    except Exception as e:
-        # 파일 저장 중 오류 발생 시 클라이언트에 오류 반환
-        app.logger.error(f"File upload failed with exception: {str(e)}", exc_info=True)
-        return jsonify({'error': f'File upload failed: {str(e)}'}), 500
-
-# 사이트 소개 페이지
-@app.route('/about')
-def about():
-    return render_template('about.html')
-
-if __name__ == '__main__':
-    app.run(debug=True)
+    return render_template('create.html', board=board)
