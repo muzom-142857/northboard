@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+
+{% block title %}새 글 작성 - {{ board['name'] }}{% endblock %}
+
+{% block content %}
+    <h1>새 글 작성 - {{ board['name'] }}</h1>
+    <form method="post">
+        <div class="form-group">
+            <label for="title">제목</label>
+            <input type="text" name="title" id="title" class="form-control" required>
+        </div>
+        <div class="form-group">
+            <label for="author">작성자</label>
+            <input type="text" name="author" id="author" class="form-control" required>
+        </div>
+        <div class="form-check mb-3">
+            <input type="checkbox" class="form-check-input" id="is_notice" name="is_notice">
+            <label class="form-check-label" for="is_notice">공지사항으로 등록</label>
+        </div>
+        <div class="form-group">
+            <label for="content">내용</label>
+            <textarea name="content" id="content" class="form-control" rows="10" required></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary">작성</button>
+    </form>
+
+    <script>
+        $(document).ready(function() {
+            $('#content').summernote({
+                height: 400,
+                minHeight: null,
+                maxHeight: null,
+                focus: true,
+                callbacks: {
+                    onImageUpload: function(files) {
+                        for (let i = 0; i < files.length; i++) {
+                            uploadFile(files[i]);
+                        }
+                    }
+                }
+            });
+
+            function uploadFile(file) {
+                let data = new FormData();
+                data.append("file", file);
+                $.ajax({
+                    url: '/upload',
+                    cache: false,
+                    contentType: false,
+                    processData: false,
+                    data: data,
+                    type: "post",
+                    success: function(response) {
+                        if (response.location) {
+                            $('#content').summernote('insertImage', response.location);
+                        } else {
+                            console.error("Upload failed: ", response.error);
+                        }
+                    },
+                    error: function(jqXHR, textStatus, errorThrown) {
+                        console.error("AJAX error: ", textStatus, errorThrown);
+                    }
+                });
+            }
+        });
+    </script>
+{% endblock %}

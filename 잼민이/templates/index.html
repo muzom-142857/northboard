@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+
+{% block title %}게시판 목록{% endblock %}
+
+{% block content %}
+    <h1>게시판 목록</h1>
+    <a href="{{ url_for('create_board') }}" class="btn btn-success mb-3">새 게시판 생성</a>
+    <div class="list-group">
+        {% for board in g.boards %}
+            <div class="list-group-item d-flex justify-content-between align-items-center">
+                <a href="{{ url_for('board_index', board_id=board['id']) }}" class="text-decoration-none text-dark flex-grow-1">
+                    <h5 class="mb-1">{{ board['name'] }}게시판</h5>
+                    <small class="text-muted">생성일: {{ board['created'] }}</small>
+                </a>
+                <form action="{{ url_for('delete_board', board_id=board['id']) }}" method="post" class="ms-3">
+                    <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('정말로 '{{ board['name'] }}게시판'을 삭제하시겠습니까? 이 게시판의 모든 게시물과 댓글도 삭제됩니다.');">삭제</button>
+                </form>
+            </div>
+        {% else %}
+            <p>생성된 게시판이 없습니다.</p>
+        {% endfor %}
+    </div>
+{% endblock %}

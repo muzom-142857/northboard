@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+
+{% block title %}새 게시판 생성{% endblock %}
+
+{% block content %}
+    <h1>새 게시판 생성</h1>
+    <form method="post">
+        <div class="form-group">
+            <label for="name">이름</label>
+            <input type="text" name="name" id="name" class="form-control" required>
+            <small class="form-text text-muted">주의: '게시판'이라는 말을 빼고 작성하세요</small>
+        </div>
+        <button type="submit" class="btn btn-primary">생성</button>
+    </form>
+{% endblock %}
