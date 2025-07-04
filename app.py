@@ -211,7 +211,6 @@ def upload_file():
         filename = secure_filename(file.filename)
         file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
         return jsonify({'location': url_for('static', filename='uploads/' + filename)}), 200
-#=======
         try:
             filename = secure_filename(file.filename)
             # UPLOAD_FOLDER의 절대 경로를 사용하고, 디렉토리가 없으면 생성
@@ -223,7 +222,6 @@ def upload_file():
         except Exception as e:
             # 파일 저장 중 오류 발생 시 클라이언트에 오류 메시지 반환
             return jsonify({'error': f'File upload failed: {str(e)}'}), 500
-#>>>>>>> e7171b1 (feat: Fix image upload and enhance CSS for modern and responsive design)
     return jsonify({'error': 'File type not allowed'}), 400
 
 # 사이트 소개 페이지
