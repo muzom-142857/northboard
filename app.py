@@ -7,11 +7,8 @@ app = Flask(__name__)
 app.secret_key = 'your_very_secret_key_here' # 실제 배포 시에는 더 복잡하고 안전한 키를 사용하세요.
 
 # 파일 업로드 설정
-<<<<<<< HEAD
 UPLOAD_FOLDER = 'static/uploads';
-=======
 UPLOAD_FOLDER = 'static/uploads'
->>>>>>> e7171b1 (feat: Fix image upload and enhance CSS for modern and responsive design)
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'pdf', 'doc', 'docx', 'txt'}
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
@@ -211,11 +208,10 @@ def upload_file():
     if file.filename == '':
         return jsonify({'error': 'No selected file'}), 400
     if file and allowed_file(file.filename):
-<<<<<<< HEAD
         filename = secure_filename(file.filename)
         file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
         return jsonify({'location': url_for('static', filename='uploads/' + filename)}), 200
-=======
+#=======
         try:
             filename = secure_filename(file.filename)
             # UPLOAD_FOLDER의 절대 경로를 사용하고, 디렉토리가 없으면 생성
@@ -227,7 +223,7 @@ def upload_file():
         except Exception as e:
             # 파일 저장 중 오류 발생 시 클라이언트에 오류 메시지 반환
             return jsonify({'error': f'File upload failed: {str(e)}'}), 500
->>>>>>> e7171b1 (feat: Fix image upload and enhance CSS for modern and responsive design)
+#>>>>>>> e7171b1 (feat: Fix image upload and enhance CSS for modern and responsive design)
     return jsonify({'error': 'File type not allowed'}), 400
 
 # 사이트 소개 페이지
@@ -236,8 +232,7 @@ def about():
     return render_template('about.html')
 
 if __name__ == '__main__':
-<<<<<<< HEAD
+
     app.run(debug=True)
 =======
     app.run(debug=True)
->>>>>>> e7171b1 (feat: Fix image upload and enhance CSS for modern and responsive design)
