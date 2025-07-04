@@ -153,5 +153,6 @@ def create(board_id):
                 flash('게시물 생성 중 오류가 발생했습니다. 다시 시도해주세요.')
                 # 오류 발생 시에도 create 페이지로 돌아가도록 처리
                 return render_template('create.html', board=board)
-
+    else: # GET 요청 처리
+        app.logger.info(f"게시물 생성 페이지 요청 수신: {request.url}")
     return render_template('create.html', board=board)
