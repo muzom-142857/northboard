@@ -7,6 +7,8 @@ import logging # logging 모듈 임포트
 app = Flask(__name__)
 app.secret_key = 'your_very_secret_key_here' # 실제 배포 시에는 더 복잡하고 안전한 키를 사용하세요.
 
+# Added a comment to force redeployment - Gemini CLI
+
 # 로깅 설정 (Render.com에서 로그를 더 잘 볼 수 있도록)
 app.logger.setLevel(logging.INFO)
 
