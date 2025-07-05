@@ -45,6 +45,11 @@ def load_boards():
 def index():
     return render_template('index.html')
 
+# 사이트 소개 페이지
+@app.route('/about')
+def about():
+    return render_template('about.html')
+
 # 특정 게시판의 게시물 목록 표시
 @app.route('/board/<int:board_id>')
 def board_index(board_id):
