@@ -17,6 +17,10 @@ UPLOAD_FOLDER = 'static/uploads'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'pdf', 'doc', 'docx', 'txt'}
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
+# Ensure upload folder exists
+if not os.path.exists(UPLOAD_FOLDER):
+    os.makedirs(UPLOAD_FOLDER)
+
 def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -265,8 +269,10 @@ def upload_file():
         filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         try:
             file.save(filepath)
+            app.logger.info(f"파일 저장 경로: {filepath}")
             # URL for the uploaded file
             file_url = url_for('static', filename=f'uploads/{filename}')
+            app.logger.info(f"생성된 파일 URL: {file_url}")
             return jsonify(location=file_url)
         except Exception as e:
             app.logger.error(f"파일 업로드 중 오류 발생: {e}", exc_info=True)
