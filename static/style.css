@@ -29,21 +29,18 @@ body {
     top: 0;
     width: 100%;
     z-index: 1030; /* Ensure navbar is on top of other content */
-    justify-content: center
 }
 
 .navbar-brand {
     font-weight: 700;
     font-size: 1.7rem; /* 브랜드 로고 폰트 크기 약간 키움 */
     color: #ffffff !important;
-    justify-content: center;
 }
 
 .navbar-nav .nav-link {
     color: #ffffff !important;
     font-weight: 500;
     transition: color 0.3s ease;
-    justify-content: center;
 }
 
 .navbar-nav .nav-link:hover {
@@ -55,7 +52,6 @@ body {
     background-color: var(--card-bg-color);
     border-radius: 1rem;
     box-shadow: 0 8px 20px var(--shadow-light); /* 컨테이너 그림자 강화 */
-    margin-top: 90px; /* Add margin-top to push content below fixed navbar */
 }
 
 h1, h2, h3, h4, h5, h6 {
@@ -401,8 +397,7 @@ h1, h2, h3, h4, h5, h6 {
         font-size: 14px; /* 모바일에서 폰트 크기 약간 줄임 */
     }
     body {
-        padding: 0;
-        margin: 0;
+
     }
     .container {
         padding: 15px;
