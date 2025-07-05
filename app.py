@@ -23,9 +23,19 @@ def allowed_file(filename):
 
 # 데이터베이스 연결
 def get_db_connection():
-    conn = sqlite3.connect('database.db')
+    db_path = os.path.join(app.root_path, 'data', 'database.db')
+    conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     return conn
+
+# 데이터베이스 초기화
+with app.app_context():
+    db_path = os.path.join(app.root_path, 'data', 'database.db')
+    if not os.path.exists(os.path.dirname(db_path)):
+        os.makedirs(os.path.dirname(db_path))
+    if not os.path.exists(db_path):
+        init_db()
+        app.logger.info("Database initialized for the first time.")
 
 # 데이터베이스 초기화
 def init_db():
