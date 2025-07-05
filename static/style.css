@@ -36,6 +36,7 @@ body {
     font-weight: 700;
     font-size: 1.7rem; /* 브랜드 로고 폰트 크기 약간 키움 */
     color: #ffffff !important;
+    justify-content: center;
 }
 
 .navbar-nav .nav-link {
