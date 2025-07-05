@@ -60,6 +60,18 @@ def init_db_command():
     print('데이터베이스가 성공적으로 초기화되었습니다.')
 
 # 각 요청 전에 모든 게시판 목록을 로드
+@app.context_processor
+def inject_css_version():
+    """모든 템플릿에 CSS 파일 버전을 주입하여 캐시 문제를 해결합니다."""
+    try:
+        # static/style.css 파일의 마지막 수정 시간을 가져옵니다.
+        css_path = os.path.join(app.static_folder, 'style.css')
+        timestamp = int(os.path.getmtime(css_path))
+        return dict(css_version=timestamp)
+    except (OSError, FileNotFoundError):
+        # 파일이 없거나 오류 발생 시 기본값을 사용합니다.
+        return dict(css_version='latest')
+
 @app.before_request
 def load_boards():
     # init-db 명령어 실행 시에는 이 함수를 건너뜀
