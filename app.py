@@ -29,6 +29,14 @@ def get_db_connection():
     return conn
 
 # 데이터베이스 초기화
+def init_db():
+    conn = get_db_connection()
+    with app.open_resource('schema.sql', mode='r') as f:
+        conn.cursor().executescript(f.read())
+    conn.commit()
+    conn.close()
+
+# 데이터베이스 초기화 (애플리케이션 시작 시 한 번만 실행)
 with app.app_context():
     db_path = os.path.join(app.root_path, 'data', 'database.db')
     if not os.path.exists(os.path.dirname(db_path)):
@@ -36,14 +44,6 @@ with app.app_context():
     if not os.path.exists(db_path):
         init_db()
         app.logger.info("Database initialized for the first time.")
-
-# 데이터베이스 초기화
-def init_db():
-    conn = get_db_connection()
-    with app.open_resource('schema.sql', mode='r') as f:
-        conn.cursor().executescript(f.read())
-    conn.commit()
-    conn.close()
 
 # 모든 게시판 가져오기 (모든 라우트에서 사용 가능하도록 g 객체에 저장)
 @app.before_request
@@ -178,3 +178,58 @@ def create(board_id):
     else: # GET 요청 처리
         app.logger.info(f"게시물 생성 페이지 요청 수신: {request.url}")
     return render_template('create.html', board=board)
+
+# 게시물 수정
+@app.route('/edit/<int:post_id>', methods=('GET', 'POST'))
+def edit(post_id):
+    conn = get_db_connection()
+    post = conn.execute('SELECT * FROM posts WHERE id = ?', (post_id,)).fetchone()
+
+    if post is None:
+        flash('게시물을 찾을 수 없습니다!')
+        conn.close()
+        return redirect(url_for('index'))
+
+    if request.method == 'POST':
+        title = request.form['title']
+        content = request.form['content']
+        is_notice = request.form.get('is_notice', 0, type=int)
+
+        if not title:
+            flash('제목은 필수입니다!')
+        else:
+            try:
+                conn.execute('UPDATE posts SET title = ?, content = ?, is_notice = ? WHERE id = ?',
+                             (title, content, is_notice, post_id))
+                conn.commit()
+                flash('게시물이 성공적으로 수정되었습니다.')
+                return redirect(url_for('post', post_id=post_id))
+            except Exception as e:
+                app.logger.error(f"게시물 수정 중 오류 발생: {e}", exc_info=True)
+                flash('게시물 수정 중 오류가 발생했습니다. 다시 시도해주세요.')
+            finally:
+                conn.close()
+    else:
+        conn.close()
+    return render_template('edit.html', post=post)
+
+# 파일 업로드
+@app.route('/upload', methods=['POST'])
+def upload_file():
+    if 'file' not in request.files:
+        return jsonify(error="No file part"), 400
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify(error="No selected file"), 400
+    if file and allowed_file(file.filename):
+        filename = secure_filename(file.filename)
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        try:
+            file.save(filepath)
+            # URL for the uploaded file
+            file_url = url_for('static', filename=f'uploads/{filename}')
+            return jsonify(location=file_url)
+        except Exception as e:
+            app.logger.error(f"파일 업로드 중 오류 발생: {e}", exc_info=True)
+            return jsonify(error=f"File upload failed: {e}"), 500
+    return jsonify(error="File type not allowed"), 400
