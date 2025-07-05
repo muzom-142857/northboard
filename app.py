@@ -237,7 +237,7 @@ def create(board_id):
         title = request.form['title']
         content = request.form['content']
         author = request.form['author']
-        is_notice = 1 if 'is_notice' in request.form else 0
+        is_notice = 1 if request.form.get('is_notice') == '1' else 0
 
         if not title or not author:
             flash('제목과 작성자는 필수입니다!')
@@ -277,7 +277,7 @@ def edit(post_id):
     if request.method == 'POST':
         title = request.form['title']
         content = request.form['content']
-        is_notice = 1 if 'is_notice' in request.form else 0
+        is_notice = 1 if request.form.get('is_notice') == '1' else 0
 
         if not title:
             flash('제목은 필수입니다!')
