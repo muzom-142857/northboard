@@ -18,13 +18,17 @@ body {
     font-size: 16px; /* 기본 폰트 크기 명시 */
     line-height: 1.7; /* 줄 간격 약간 넓힘 */
     margin: 0;
-    padding: 0;
+    padding-top: 70px; /* Adjust this value based on your navbar's actual height */
 }
 
 .navbar {
     background-color: var(--primary-color) !important;
     box-shadow: 0 4px 12px var(--shadow-light); /* 그림자 약간 강화 */
     padding: 1rem 0;
+    position: fixed; /* Make navbar fixed */
+    top: 0;
+    width: 100%;
+    z-index: 1030; /* Ensure navbar is on top of other content */
 }
 
 .navbar-brand {
@@ -48,7 +52,6 @@ body {
     background-color: var(--card-bg-color);
     border-radius: 1rem;
     box-shadow: 0 8px 20px var(--shadow-light); /* 컨테이너 그림자 강화 */
-    margin-top: 2rem;
 }
 
 h1, h2, h3, h4, h5, h6 {
