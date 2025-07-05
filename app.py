@@ -1,23 +1,28 @@
-import sqlite3
+import os
+import logging
+import psycopg2
+import psycopg2.extras
+from dotenv import load_dotenv
 from flask import Flask, render_template, request, redirect, url_for, g, flash, jsonify
 from werkzeug.utils import secure_filename
-import os
-import logging # logging 모듈 임포트
+
+# .env 파일에서 환경 변수 로드
+load_dotenv()
 
 app = Flask(__name__)
-app.secret_key = 'your_very_secret_key_here' # 실제 배포 시에는 더 복잡하고 안전한 키를 사용하세요.
+# 환경 변수에서 SECRET_KEY를 불러오거나, 없는 경우 기본값 사용
+app.secret_key = os.getenv('SECRET_KEY', 'your_default_secret_key')
 
-# Added a comment to force redeployment - Gemini CLI
+# 환경 변수에서 데이터베이스 연결 URI 불러오기
+DATABASE_URL = os.getenv("DATABASE_URL")
 
-# 로깅 설정 (Render.com에서 로그를 더 잘 볼 수 있도록)
+# 로깅 설정
 app.logger.setLevel(logging.INFO)
 
 # 파일 업로드 설정
 UPLOAD_FOLDER = 'static/uploads'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'pdf', 'doc', 'docx', 'txt'}
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-
-# Ensure upload folder exists
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 
@@ -25,65 +30,87 @@ def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-# 데이터베이스 연결
+# 데이터베이스 연결 함수
 def get_db_connection():
-    db_path = os.path.join(app.root_path, 'database.db')
-    conn = sqlite3.connect(db_path)
-    conn.row_factory = sqlite3.Row
-    return conn
+    """PostgreSQL 데이터베이스에 연결합니다."""
+    try:
+        conn = psycopg2.connect(DATABASE_URL)
+        return conn
+    except psycopg2.OperationalError as e:
+        app.logger.error(f"데이터베이스에 연결할 수 없습니다: {e}")
+        raise
 
-# 데이터베이스 초기화
+# 데이터베이스 초기화 함수 (CLI 명령으로만 사용)
 def init_db():
+    """schema.sql을 사용하여 데이터베이스를 초기화합니다."""
     conn = get_db_connection()
+    cur = conn.cursor()
     with app.open_resource('schema.sql', mode='r') as f:
-        conn.cursor().executescript(f.read())
+        cur.execute(f.read())
     conn.commit()
+    cur.close()
     conn.close()
+    app.logger.info("데이터베이스가 초기화되었습니다.")
 
-# 데이터베이스 초기화 (애플리케이션 시작 시 한 번만 실행)
-with app.app_context():
-    db_path = os.path.join(app.root_path, 'database.db')
-    if not os.path.exists(os.path.dirname(db_path)):
-        os.makedirs(os.path.dirname(db_path))
-    if not os.path.exists(db_path):
-        init_db()
-        app.logger.info("Database initialized for the first time.")
+# 'flask init-db' CLI 명령어 정의
+@app.cli.command('init-db')
+def init_db_command():
+    """데이터베이스를 초기화하는 Flask CLI 명령어."""
+    init_db()
+    print('데이터베이스가 성공적으로 초기화되었습니다.')
 
-# 모든 게시판 가져오기 (모든 라우트에서 사용 가능하도록 g 객체에 저장)
+# 각 요청 전에 모든 게시판 목록을 로드
 @app.before_request
 def load_boards():
+    # init-db 명령어 실행 시에는 이 함수를 건너뜀
+    if request.endpoint == 'static' or request.path.startswith('/uploads'):
+        return
+    if request.endpoint and 'init_db' in request.endpoint:
+        return
+
     conn = get_db_connection()
-    g.boards = conn.execute('SELECT * FROM boards ORDER BY created DESC').fetchall()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+    cur.execute('SELECT * FROM boards ORDER BY created DESC')
+    g.boards = cur.fetchall()
+    cur.close()
     conn.close()
 
-# 메인 페이지 - 게시판 목록 표시
+# 메인 페이지
 @app.route('/')
 def index():
     return render_template('index.html')
 
-# 사이트 소개 페이지
+# 소개 페이지
 @app.route('/about')
 def about():
     return render_template('about.html')
 
-# 특정 게시판의 게시물 목록 표시
+# 특정 게시판의 게시물 목록
 @app.route('/board/<int:board_id>')
 def board_index(board_id):
     try:
         conn = get_db_connection()
-        board = conn.execute('SELECT * FROM boards WHERE id = ?', (board_id,)).fetchone()
+        cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+        cur.execute('SELECT * FROM boards WHERE id = %s', (board_id,))
+        board = cur.fetchone()
         if board is None:
             flash('게시판을 찾을 수 없습니다!')
+            cur.close()
+            conn.close()
             return redirect(url_for('index'))
 
-        # 공지사항 게시물과 일반 게시물을 분리하여 가져옴
-        notices = conn.execute('SELECT * FROM posts WHERE board_id = ? AND is_notice = 1 ORDER BY created DESC', (board_id,)).fetchall()
-        posts = conn.execute('SELECT * FROM posts WHERE board_id = ? AND is_notice = 0 ORDER BY created DESC', (board_id,)).fetchall()
+        cur.execute('SELECT * FROM posts WHERE board_id = %s AND is_notice = 1 ORDER BY created DESC', (board_id,))
+        notices = cur.fetchall()
+        cur.execute('SELECT * FROM posts WHERE board_id = %s AND is_notice = 0 ORDER BY created DESC', (board_id,))
+        posts = cur.fetchall()
+
+        cur.close()
         conn.close()
         return render_template('board_index.html', board=board, notices=notices, posts=posts)
     except Exception as e:
-        app.logger.error(f"게시판 인덱스 로드 중 오류 발생: {e}", exc_info=True)
-        flash('게시판을 불러오는 중 오류가 발생했습니다. 다시 시도해주세요.')
+        app.logger.error(f"게시판 인덱스 로드 중 오류: {e}", exc_info=True)
+        flash('게시판을 불러오는 중 오류가 발생했습니다.')
         return redirect(url_for('index'))
 
 # 게시판 생성
@@ -92,147 +119,184 @@ def create_board():
     if request.method == 'POST':
         name = request.form['name']
         if not name:
-            flash('이름은 필수입니다!') # '게시판' 단어 제거
+            flash('이름은 필수입니다!')
         else:
-            conn = get_db_connection()
+            conn = None
             try:
-                conn.execute('INSERT INTO boards (name) VALUES (?)', (name,))
+                conn = get_db_connection()
+                cur = conn.cursor()
+                cur.execute('INSERT INTO boards (name) VALUES (%s)', (name,))
                 conn.commit()
-                flash(f'{name}이(가) 생성되었습니다.') # 문구 변경
+                flash(f"'{name}' 게시판이 생성되었습니다.")
                 return redirect(url_for('index'))
-            except sqlite3.IntegrityError:
-                flash('이미 존재하는 이름입니다!') # 문구 변경
+            except psycopg2.IntegrityError:
+                flash('이미 존재하는 이름입니다!')
             except Exception as e:
-                app.logger.error(f"게시판 생성 중 오류 발생: {e}", exc_info=True)
-                flash('게시판 생성 중 오류가 발생했습니다. 다시 시도해주세요.')
+                app.logger.error(f"게시판 생성 중 오류: {e}", exc_info=True)
+                flash('게시판 생성 중 오류가 발생했습니다.')
             finally:
-                conn.close()
+                if conn:
+                    cur.close()
+                    conn.close()
     return render_template('create_board.html')
 
 # 게시판 삭제
 @app.route('/boards/delete/<int:board_id>', methods=('POST',))
 def delete_board(board_id):
-    app.logger.info(f"게시판 삭제 요청 수신: {request.url}, board_id: {board_id}")
-    conn = get_db_connection()
-    board = conn.execute('SELECT * FROM boards WHERE id = ?', (board_id,)).fetchone()
+    conn = None
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+        cur.execute('SELECT name FROM boards WHERE id = %s', (board_id,))
+        board = cur.fetchone()
 
-    if board is None:
-        flash('게시판을 찾을 수 없습니다!')
-        conn.close()
-        return redirect(url_for('index'))
-
-    conn.execute('DELETE FROM boards WHERE id = ?', (board_id,))
-    conn.commit()
-    conn.close()
-    flash(f'{board["name"]}이(가) 성공적으로 삭제되었습니다.') # 문구 변경
+        if board is None:
+            flash('게시판을 찾을 수 없습니다!')
+        else:
+            cur.execute('DELETE FROM boards WHERE id = %s', (board_id,))
+            conn.commit()
+            flash(f"'{board["name"]}' 게시판이 삭제되었습니다.")
+    except Exception as e:
+        app.logger.error(f"게시판 삭제 중 오류: {e}", exc_info=True)
+        flash('게시판 삭제 중 오류가 발생했습니다.')
+    finally:
+        if conn:
+            cur.close()
+            conn.close()
     return redirect(url_for('index'))
 
-# 게시물 조회 및 댓글 표시
+# 게시물 조회
 @app.route('/post/<int:post_id>')
 def post(post_id):
     try:
         conn = get_db_connection()
-        post = conn.execute('SELECT * FROM posts WHERE id = ?', (post_id,)).fetchone()
+        cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+        cur.execute('SELECT * FROM posts WHERE id = %s', (post_id,))
+        post = cur.fetchone()
         if post is None:
             flash('게시물을 찾을 수 없습니다!')
+            cur.close()
+            conn.close()
             return redirect(url_for('index'))
-        comments = conn.execute('SELECT * FROM comments WHERE post_id = ? ORDER BY created DESC', (post_id,)).fetchall()
+        
+        cur.execute('SELECT * FROM comments WHERE post_id = %s ORDER BY created DESC', (post_id,))
+        comments = cur.fetchall()
+        cur.close()
         conn.close()
         return render_template('post.html', post=post, comments=comments)
     except Exception as e:
-        app.logger.error(f"게시물 상세 보기 로드 중 오류 발생 (post_id: {post_id}): {e}", exc_info=True)
-        flash('게시물을 불러오는 중 오류가 발생했습니다. 다시 시도해주세요.')
+        app.logger.error(f"게시물 로드 중 오류 (post_id: {post_id}): {e}", exc_info=True)
+        flash('게시물을 불러오는 중 오류가 발생했습니다.')
         return redirect(url_for('index'))
 
 # 게시물 생성
 @app.route('/board/<int:board_id>/create', methods=('GET', 'POST'))
 def create(board_id):
     conn = get_db_connection()
-    board = conn.execute('SELECT * FROM boards WHERE id = ?', (board_id,)).fetchone()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+    cur.execute('SELECT * FROM boards WHERE id = %s', (board_id,))
+    board = cur.fetchone()
+    cur.close()
     conn.close()
+
     if board is None:
         flash('게시판을 찾을 수 없습니다!')
         return redirect(url_for('index'))
 
     if request.method == 'POST':
-        app.logger.info(f"게시물 생성 요청 수신: {request.url}, 폼 데이터: {request.form}")
         title = request.form['title']
         content = request.form['content']
         author = request.form['author']
-        is_notice = 1 if '1' in request.form.getlist('is_notice') else 0
+        is_notice = 1 if 'is_notice' in request.form else 0
 
-        if not title:
-            flash('제목은 필수입니다!')
-        elif not author:
-            flash('작성자는 필수입니다!')
+        if not title or not author:
+            flash('제목과 작성자는 필수입니다!')
         else:
+            conn_post = None
             try:
-                conn = get_db_connection()
-                conn.execute('INSERT INTO posts (board_id, title, content, author, is_notice) VALUES (?, ?, ?, ?, ?)',
-                             (board_id, title, content, author, is_notice))
-                conn.commit()
-                conn.close()
+                conn_post = get_db_connection()
+                cur_post = conn_post.cursor()
+                cur_post.execute('INSERT INTO posts (board_id, title, content, author, is_notice) VALUES (%s, %s, %s, %s, %s)',
+                                 (board_id, title, content, author, is_notice))
+                conn_post.commit()
                 flash('게시물이 성공적으로 작성되었습니다.')
                 return redirect(url_for('board_index', board_id=board_id))
             except Exception as e:
-                app.logger.error(f"게시물 생성 중 오류 발생: {e}", exc_info=True)
-                flash('게시물 생성 중 오류가 발생했습니다. 다시 시도해주세요.')
-                # 오류 발생 시에도 create 페이지로 돌아가도록 처리
-                return render_template('create.html', board=board)
-    else: # GET 요청 처리
-        app.logger.info(f"게시물 생성 페이지 요청 수신: {request.url}")
+                app.logger.error(f"게시물 생성 중 오류: {e}", exc_info=True)
+                flash('게시물 생성 중 오류가 발생했습니다.')
+            finally:
+                if conn_post:
+                    cur_post.close()
+                    conn_post.close()
     return render_template('create.html', board=board)
 
 # 게시물 수정
 @app.route('/edit/<int:post_id>', methods=('GET', 'POST'))
 def edit(post_id):
     conn = get_db_connection()
-    post = conn.execute('SELECT * FROM posts WHERE id = ?', (post_id,)).fetchone()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+    cur.execute('SELECT * FROM posts WHERE id = %s', (post_id,))
+    post = cur.fetchone()
+    cur.close()
+    conn.close()
 
     if post is None:
         flash('게시물을 찾을 수 없습니다!')
-        conn.close()
         return redirect(url_for('index'))
 
     if request.method == 'POST':
         title = request.form['title']
         content = request.form['content']
-        is_notice = 1 if '1' in request.form.getlist('is_notice') else 0
+        is_notice = 1 if 'is_notice' in request.form else 0
 
         if not title:
             flash('제목은 필수입니다!')
         else:
+            conn_edit = None
             try:
-                conn.execute('UPDATE posts SET title = ?, content = ?, is_notice = ? WHERE id = ?',
-                             (title, content, is_notice, post_id))
-                conn.commit()
+                conn_edit = get_db_connection()
+                cur_edit = conn_edit.cursor()
+                cur_edit.execute('UPDATE posts SET title = %s, content = %s, is_notice = %s WHERE id = %s',
+                                 (title, content, is_notice, post_id))
+                conn_edit.commit()
                 flash('게시물이 성공적으로 수정되었습니다.')
                 return redirect(url_for('post', post_id=post_id))
             except Exception as e:
-                app.logger.error(f"게시물 수정 중 오류 발생: {e}", exc_info=True)
-                flash('게시물 수정 중 오류가 발생했습니다. 다시 시도해주세요.')
+                app.logger.error(f"게시물 수정 중 오류: {e}", exc_info=True)
+                flash('게시물 수정 중 오류가 발생했습니다.')
             finally:
-                conn.close()
-    else:
-        conn.close()
+                if conn_edit:
+                    cur_edit.close()
+                    conn_edit.close()
     return render_template('edit.html', post=post)
 
 # 게시물 삭제
 @app.route('/delete/<int:post_id>', methods=('POST',))
 def delete(post_id):
-    conn = get_db_connection()
-    post = conn.execute('SELECT * FROM posts WHERE id = ?', (post_id,)).fetchone()
+    conn = None
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+        cur.execute('SELECT board_id FROM posts WHERE id = %s', (post_id,))
+        post = cur.fetchone()
 
-    if post is None:
-        flash('게시물을 찾을 수 없습니다!')
-        conn.close()
+        if post is None:
+            flash('게시물을 찾을 수 없습니다!')
+            return redirect(url_for('index'))
+
+        board_id = post['board_id']
+        cur.execute('DELETE FROM posts WHERE id = %s', (post_id,))
+        conn.commit()
+        flash('게시물이 성공적으로 삭제되었습니다.')
+        return redirect(url_for('board_index', board_id=board_id))
+    except Exception as e:
+        app.logger.error(f"게시물 삭제 중 오류: {e}", exc_info=True)
+        flash('게시물 삭제 중 오류가 발생했습니다.')
         return redirect(url_for('index'))
-
-    conn.execute('DELETE FROM posts WHERE id = ?', (post_id,))
-    conn.commit()
-    conn.close()
-    flash('게시물이 성공적으로 삭제되었습니다.')
-    return redirect(url_for('board_index', board_id=post['board_id']))
+    finally:
+        if conn:
+            cur.close()
+            conn.close()
 
 # 댓글 추가
 @app.route('/add_comment/<int:post_id>', methods=('POST',))
@@ -243,17 +307,21 @@ def add_comment(post_id):
     if not author or not content:
         flash('작성자와 내용은 필수입니다!')
     else:
-        conn = get_db_connection()
+        conn = None
         try:
-            conn.execute('INSERT INTO comments (post_id, author, content) VALUES (?, ?, ?)',
+            conn = get_db_connection()
+            cur = conn.cursor()
+            cur.execute('INSERT INTO comments (post_id, author, content) VALUES (%s, %s, %s)',
                          (post_id, author, content))
             conn.commit()
             flash('댓글이 성공적으로 추가되었습니다.')
         except Exception as e:
-            app.logger.error(f"댓글 추가 중 오류 발생: {e}", exc_info=True)
-            flash('댓글 추가 중 오류가 발생했습니다. 다시 시도해주세요.')
+            app.logger.error(f"댓글 추가 중 오류: {e}", exc_info=True)
+            flash('댓글 추가 중 오류가 발생했습니다.')
         finally:
-            conn.close()
+            if conn:
+                cur.close()
+                conn.close()
     return redirect(url_for('post', post_id=post_id))
 
 # 파일 업로드
@@ -270,7 +338,6 @@ def upload_file():
         try:
             file.save(filepath)
             app.logger.info(f"파일 저장 경로: {filepath}")
-            # URL for the uploaded file
             file_url = url_for('static', filename=f'uploads/{filename}')
             app.logger.info(f"생성된 파일 URL: {file_url}")
             return jsonify(location=file_url)
