@@ -116,14 +116,19 @@ def delete_board(board_id):
 # 게시물 조회 및 댓글 표시
 @app.route('/post/<int:post_id>')
 def post(post_id):
-    conn = get_db_connection()
-    post = conn.execute('SELECT * FROM posts WHERE id = ?', (post_id,)).fetchone()
-    if post is None:
-        flash('게시물을 찾을 수 없습니다!')
+    try:
+        conn = get_db_connection()
+        post = conn.execute('SELECT * FROM posts WHERE id = ?', (post_id,)).fetchone()
+        if post is None:
+            flash('게시물을 찾을 수 없습니다!')
+            return redirect(url_for('index'))
+        comments = conn.execute('SELECT * FROM comments WHERE post_id = ? ORDER BY created DESC', (post_id,)).fetchall()
+        conn.close()
+        return render_template('post.html', post=post, comments=comments)
+    except Exception as e:
+        app.logger.error(f"게시물 상세 보기 로드 중 오류 발생 (post_id: {post_id}): {e}", exc_info=True)
+        flash('게시물을 불러오는 중 오류가 발생했습니다. 다시 시도해주세요.')
         return redirect(url_for('index'))
-    comments = conn.execute('SELECT * FROM comments WHERE post_id = ? ORDER BY created DESC', (post_id,)).fetchall()
-    conn.close()
-    return render_template('post.html', post=post, comments=comments)
 
 # 게시물 생성
 @app.route('/board/<int:board_id>/create', methods=('GET', 'POST'))
