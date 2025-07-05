@@ -213,6 +213,23 @@ def edit(post_id):
         conn.close()
     return render_template('edit.html', post=post)
 
+# 게시물 삭제
+@app.route('/delete/<int:post_id>', methods=('POST',))
+def delete(post_id):
+    conn = get_db_connection()
+    post = conn.execute('SELECT * FROM posts WHERE id = ?', (post_id,)).fetchone()
+
+    if post is None:
+        flash('게시물을 찾을 수 없습니다!')
+        conn.close()
+        return redirect(url_for('index'))
+
+    conn.execute('DELETE FROM posts WHERE id = ?', (post_id,))
+    conn.commit()
+    conn.close()
+    flash('게시물이 성공적으로 삭제되었습니다.')
+    return redirect(url_for('board_index', board_id=post['board_id']))
+
 # 파일 업로드
 @app.route('/upload', methods=['POST'])
 def upload_file():
