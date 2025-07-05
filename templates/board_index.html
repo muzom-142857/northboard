@@ -5,25 +5,29 @@
 {% block content %}
     <h1>{{ board['name'] }}게시판</h1>
     <a href="{{ url_for('create', board_id=board['id']) }}" class="btn btn-primary mb-3">새 글 작성</a>
-    <div class="list-group mb-4">
+    <div class="row">
         {% if notices %}
             {% for post in notices %}
-                <a href="{{ url_for('post', post_id=post['id']) }}" class="list-group-item list-group-item-action list-group-item-warning notice-post">
-                    <div class="d-flex w-100 justify-content-between">
-                        <h5 class="mb-1"><span class="badge bg-danger me-2">공지</span>{{ post['title'] }}</h5>
-                        <small class="text-muted">작성자: {{ post['author'] }} | {{ post['created'] }}</small>
+                <div class="col-md-12 mb-3">
+                    <div class="card notice-post">
+                        <div class="card-body">
+                            <h5 class="card-title"><span class="badge bg-danger me-2">공지</span><a href="{{ url_for('post', post_id=post['id']) }}" class="text-decoration-none text-dark">{{ post['title'] }}</a></h5>
+                            <p class="card-text"><small class="text-muted">작성자: {{ post['author'] }} | {{ post['created'] }}</small></p>
+                        </div>
                     </div>
-                </a>
+                </div>
             {% endfor %}
         {% endif %}
 
         {% for post in posts %}
-            <a href="{{ url_for('post', post_id=post['id']) }}" class="list-group-item list-group-item-action">
-                <div class="d-flex w-100 justify-content-between">
-                    <h5 class="mb-1">{{ post['title'] }}</h5>
-                    <small class="text-muted">작성자: {{ post['author'] }} | {{ post['created'] }}</small>
+            <div class="col-md-12 mb-3">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title"><a href="{{ url_for('post', post_id=post['id']) }}" class="text-decoration-none text-dark">{{ post['title'] }}</a></h5>
+                        <p class="card-text"><small class="text-muted">작성자: {{ post['author'] }} | {{ post['created'] }}</small></p>
+                    </div>
                 </div>
-            </a>
+            </div>
         {% else %}
             {% if not notices %}
                 <p>아직 게시물이 없습니다.</p>
