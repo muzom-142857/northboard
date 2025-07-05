@@ -230,6 +230,28 @@ def delete(post_id):
     flash('게시물이 성공적으로 삭제되었습니다.')
     return redirect(url_for('board_index', board_id=post['board_id']))
 
+# 댓글 추가
+@app.route('/add_comment/<int:post_id>', methods=('POST',))
+def add_comment(post_id):
+    author = request.form['author']
+    content = request.form['content']
+
+    if not author or not content:
+        flash('작성자와 내용은 필수입니다!')
+    else:
+        conn = get_db_connection()
+        try:
+            conn.execute('INSERT INTO comments (post_id, author, content) VALUES (?, ?, ?)',
+                         (post_id, author, content))
+            conn.commit()
+            flash('댓글이 성공적으로 추가되었습니다.')
+        except Exception as e:
+            app.logger.error(f"댓글 추가 중 오류 발생: {e}", exc_info=True)
+            flash('댓글 추가 중 오류가 발생했습니다. 다시 시도해주세요.')
+        finally:
+            conn.close()
+    return redirect(url_for('post', post_id=post_id))
+
 # 파일 업로드
 @app.route('/upload', methods=['POST'])
 def upload_file():
