@@ -23,7 +23,7 @@ def allowed_file(filename):
 
 # 데이터베이스 연결
 def get_db_connection():
-    db_path = os.path.join(app.root_path, 'data', 'database.db')
+    db_path = os.path.join(app.root_path, 'database.db')
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     return conn
@@ -38,7 +38,7 @@ def init_db():
 
 # 데이터베이스 초기화 (애플리케이션 시작 시 한 번만 실행)
 with app.app_context():
-    db_path = os.path.join(app.root_path, 'data', 'database.db')
+    db_path = os.path.join(app.root_path, 'database.db')
     if not os.path.exists(os.path.dirname(db_path)):
         os.makedirs(os.path.dirname(db_path))
     if not os.path.exists(db_path):
