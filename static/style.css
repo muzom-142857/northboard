@@ -203,6 +203,16 @@ h1, h2, h3, h4, h5, h6 {
     color: var(--text-color);
 }
 
+/* Images within content */
+.card-text img {
+    max-width: 100%;
+    height: auto; /* Maintain aspect ratio */
+    display: block; /* Remove extra space below image */
+    margin: 1rem auto; /* Center image and add vertical spacing */
+    border-radius: 0.5rem; /* Slightly rounded corners */
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+}
+
 /* New styles for board list and modal */
 .dropdown-menu {
     border-radius: 0.75rem;
