@@ -5,13 +5,13 @@
 {% block content %}
     <h1>새 글 작성 - {{ board['name'] }}</h1>
     <form method="post" id="postForm">
-        <div class="form-group">
-            <label for="title">제목</label>
+        <div class="form-outline mb-4">
             <input type="text" name="title" id="title" class="form-control" required>
+            <label class="form-label" for="title">제목</label>
         </div>
-        <div class="form-group">
-            <label for="author">작성자</label>
+        <div class="form-outline mb-4">
             <input type="text" name="author" id="author" class="form-control" required>
+            <label class="form-label" for="author">작성자</label>
         </div>
         <div class="form-check mb-3">
             <input type="checkbox" class="form-check-input" id="is_notice" name="is_notice" value="1">
@@ -22,7 +22,7 @@
             <div id="editor" style="height: 300px;"></div>
             <input type="hidden" name="content" id="content_hidden">
         </div>
-        <button type="submit" class="btn btn-primary">작성</button>
+        <button type="submit" class="btn btn-primary ripple">작성</button>
     </form>
 
     <script>

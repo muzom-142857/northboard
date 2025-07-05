@@ -5,9 +5,9 @@
 {% block content %}
     <h1>글 수정</h1>
     <form method="post">
-        <div class="form-group">
-            <label for="title">제목</label>
+        <div class="form-outline mb-4">
             <input type="text" name="title" id="title" class="form-control" value="{{ post['title'] }}" required>
+            <label class="form-label" for="title">제목</label>
         </div>
         <div class="form-check mb-3">
             <input type="checkbox" class="form-check-input" id="is_notice" name="is_notice" value="1" {% if post['is_notice'] %}checked{% endif %}>
@@ -18,7 +18,7 @@
             <div id="editor" style="height: 300px;">{{ post['content'] | safe }}</div>
             <input type="hidden" name="content" id="content_hidden">
         </div>
-        <button type="submit" class="btn btn-primary">수정</button>
+        <button type="submit" class="btn btn-primary ripple">수정</button>
     </form>
 
     <script>

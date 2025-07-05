@@ -234,6 +234,8 @@ def create(board_id):
         return redirect(url_for('index'))
 
     if request.method == 'POST':
+        # 디버깅을 위해 수신된 폼 데이터 전체를 로깅합니다.
+        app.logger.info(f"Create Post - Form Data: {request.form}")
         title = request.form['title']
         content = request.form['content']
         author = request.form['author']
