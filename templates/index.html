@@ -15,7 +15,7 @@
                     <small>{{ board['created'] }}</small>
                 </div>
                 <div class="d-flex w-100 justify-content-end mt-2">
-                    <button type="button" class="btn btn-danger btn-sm delete-board-btn" data-bs-toggle="modal" data-bs-target="#deleteBoardModal" data-board-id="{{ board['id'] }}" data-board-name="{{ board['name'] }}">삭제</button>
+                    <button type="button" class="btn btn-danger btn-sm delete-board-btn" data-mdb-toggle="modal" data-mdb-target="#deleteBoardModal" data-board-id="{{ board['id'] }}" data-board-name="{{ board['name'] }}">삭제</button>
                 </div>
             </div>
         {% else %}
@@ -29,7 +29,7 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="deleteBoardModalLabel">게시판 삭제 확인</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close" data-mdb-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <p><strong id="modalBoardName"></strong> 게시판을 정말로 삭제하시겠습니까? 이 게시판의 모든 게시물과 댓글도 삭제됩니다.</p>
