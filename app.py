@@ -5,11 +5,13 @@ import psycopg2.extras
 from dotenv import load_dotenv
 from flask import Flask, render_template, request, redirect, url_for, g, flash, jsonify
 from werkzeug.utils import secure_filename
+from flask_compress import Compress
 
 # .env 파일에서 환경 변수 로드
 load_dotenv()
 
 app = Flask(__name__)
+Compress(app)  # 응답 압축 활성화
 # 환경 변수에서 SECRET_KEY를 불러오거나, 없는 경우 기본값 사용
 app.secret_key = os.getenv('SECRET_KEY', 'your_default_secret_key')
 
@@ -72,20 +74,30 @@ def inject_css_version():
         # 파일이 없거나 오류 발생 시 기본값을 사용합니다.
         return dict(css_version='latest')
 
+# 게시판 목록을 위한 간단한 인-메모리 캐시
+board_cache = None
+
 @app.before_request
 def load_boards():
+    global board_cache
     # init-db 명령어 실행 시에는 이 함수를 건너뜀
     if request.endpoint == 'static' or request.path.startswith('/uploads'):
         return
     if request.endpoint and 'init_db' in request.endpoint:
         return
 
-    conn = get_db_connection()
-    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
-    cur.execute('SELECT * FROM boards ORDER BY created DESC')
-    g.boards = cur.fetchall()
-    cur.close()
-    conn.close()
+    # 캐시가 비어있을 때만 데이터베이스에서 게시판 목록을 가져옴
+    if board_cache is None:
+        app.logger.info("게시판 목록 캐시가 비어있어 DB에서 새로고침합니다.")
+        conn = get_db_connection()
+        cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+        cur.execute('SELECT * FROM boards ORDER BY created DESC')
+        board_cache = cur.fetchall()
+        cur.close()
+        conn.close()
+    
+    # g 객체에 캐시된 목록을 저장하여 템플릿에서 사용
+    g.boards = board_cache
 
 # 메인 페이지
 @app.route('/')
@@ -139,6 +151,9 @@ def create_board():
                 cur = conn.cursor()
                 cur.execute('INSERT INTO boards (name) VALUES (%s)', (name,))
                 conn.commit()
+                # 게시판 목록 캐시 초기화
+                global board_cache
+                board_cache = None
                 flash(f"'{name}' 게시판이 생성되었습니다.")
                 return redirect(url_for('index'))
             except psycopg2.IntegrityError:
@@ -167,6 +182,9 @@ def delete_board(board_id):
         else:
             cur.execute('DELETE FROM boards WHERE id = %s', (board_id,))
             conn.commit()
+            # 게시판 목록 캐시 초기화
+            global board_cache
+            board_cache = None
             flash(f"'{board["name"]}' 게시판이 삭제되었습니다.")
     except Exception as e:
         app.logger.error(f"게시판 삭제 중 오류: {e}", exc_info=True)
