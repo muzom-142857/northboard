@@ -29,6 +29,7 @@ body {
     top: 0;
     width: 100%;
     z-index: 1030; /* Ensure navbar is on top of other content */
+    justify-content: center
 }
 
 .navbar-brand {
