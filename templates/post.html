@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ post['title'] }}{% endblock %}
+
+{% block content %}
+    <div class="post-view">
+        <div class="post-header">
+            <h1 class="post-title">{{ post['title'] }}</h1>
+            <div class="post-meta">
+                <span class="post-author"><i class="fas fa-user"></i> {{ post['author'] }}</span>
+                <span class="post-date"><i class="fas fa-clock"></i> {{ post['created'] }}</span>
+            </div>
+        </div>
+
+        <div class="post-content">
+            {{ post['content'] | safe }}
+        </div>
+
+        <div class="post-actions">
+            <a href="{{ url_for('edit', post_id=post['id']) }}" class="btn btn-secondary btn-sm">수정</a>
+            <form action="{{ url_for('delete', post_id=post['id']) }}" method="post" class="d-inline">
+                <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('정말로 이 게시물을 삭제하시겠습니까?');">삭제</button>
+            </form>
+            <a href="javascript:history.back()" class="btn btn-outline btn-sm">목록</a>
+        </div>
+    </div>
+
+    <div class="comments-section">
+        <h2 class="comments-title">댓글 <span class="comment-count">{{ comments|length }}</span></h2>
+
+        {% for comment in comments %}
+        <div class="comment-item">
+            <div class="comment-header">
+                <span class="comment-author">{{ comment['author'] }}</span>
+                <span class="comment-date">{{ comment['created'] }}</span>
+            </div>
+            <div class="comment-content">{{ comment['content'] }}</div>
+        </div>
+        {% else %}
+        <p class="no-comments">아직 댓글이 없습니다.</p>
+        {% endfor %}
+
+        <div class="comment-form">
+            <h3>댓글 작성</h3>
+            <form action="{{ url_for('add_comment', post_id=post['id']) }}" method="post">
+                <div class="form-row">
+                    <label for="author">작성자</label>
+                    <input type="text" name="author" id="author" class="form-control" required>
+                </div>
+                <div class="form-row">
+                    <label for="comment_content">내용</label>
+                    <textarea name="content" id="comment_content" class="form-control" rows="3" required></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary btn-sm">댓글 등록</button>
+            </form>
+        </div>
+    </div>
+{% endblock %}
