@@ -397,6 +397,7 @@ def upload_file():
     return jsonify(error="File type not allowed"), 400
 
 # 로그인 로그 파일 조회 (테스트용)
+@app.route('/login_log.txt')
 def view_login_log():
     log_path = os.path.join(os.path.dirname(__file__), 'login_log.txt')
     try:
