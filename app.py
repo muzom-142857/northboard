@@ -2,7 +2,7 @@ import os
 import logging
 import sqlite3
 from dotenv import load_dotenv
-from flask import Flask, render_template, request, redirect, url_for, g, flash, jsonify
+from flask import Flask, render_template, request, redirect, url_for, g, flash, jsonify, Response
 from werkzeug.utils import secure_filename
 from flask_compress import Compress
 
@@ -395,3 +395,13 @@ def upload_file():
             app.logger.error(f"파일 업로드 중 오류 발생: {e}", exc_info=True)
             return jsonify(error=f"File upload failed: {e}"), 500
     return jsonify(error="File type not allowed"), 400
+
+# 로그인 로그 파일 조회 (테스트용)
+def view_login_log():
+    log_path = os.path.join(os.path.dirname(__file__), 'login_log.txt')
+    try:
+        with open(log_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+        return Response(content, mimetype='text/plain; charset=utf-8')
+    except FileNotFoundError:
+        return Response('로그 파일이 아직 없습니다.', mimetype='text/plain; charset=utf-8')
