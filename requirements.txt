@@ -1,5 +1,0 @@
-Flask
-gunicorn
-psycopg2-binary
-python-dotenv
-Flask-Compress
