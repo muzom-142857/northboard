@@ -1,0 +1,116 @@
+{% extends 'base.html' %}
+
+{% block title %}게시판 목록{% endblock %}
+
+{% block content %}
+    <div class="board-header">
+        <h1>게시판 목록</h1>
+        <a href="{{ url_for('create_board') }}" class="btn btn-primary btn-sm">새 게시판 생성</a>
+    </div>
+
+    <div class="board-table-wrapper">
+        <table class="board-table">
+            <thead>
+                <tr>
+                    <th class="col-no">번호</th>
+                    <th class="col-title">게시판명</th>
+                    <th class="col-date">생성일</th>
+                    <th class="col-action">관리</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for board in g.boards %}
+                <tr>
+                    <td class="col-no">{{ loop.index }}</td>
+                    <td class="col-title">
+                        <a href="{{ url_for('board_index', board_id=board['id']) }}">{{ board['name'] }}</a>
+                    </td>
+                    <td class="col-date">{{ board['created'][:10] }}</td>
+                    <td class="col-action">
+                        <button type="button" class="btn btn-danger btn-xs delete-board-btn" data-board-id="{{ board['id'] }}" data-board-name="{{ board['name'] }}">삭제</button>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="4" class="empty-message">생성된 게시판이 없습니다.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Delete Board Modal -->
+    <div class="modal fade" id="deleteBoardModal" tabindex="-1" aria-labelledby="deleteBoardModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteBoardModalLabel">게시판 삭제 확인</h5>
+                    <button type="button" class="btn-close modal-close-btn" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p><strong id="modalBoardName"></strong> 게시판을 정말로 삭제하시겠습니까? 이 게시판의 모든 게시물과 댓글도 삭제됩니다.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary modal-close-btn">취소</button>
+                    <form id="deleteBoardForm" method="post">
+                        <button type="submit" class="btn btn-danger">삭제</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var deleteBoardModal = document.getElementById('deleteBoardModal');
+            var deleteButtons = document.querySelectorAll('.delete-board-btn');
+            var closeButtons = document.querySelectorAll('.modal-close-btn');
+            var modalBoardName = document.getElementById('modalBoardName');
+            var deleteBoardForm = document.getElementById('deleteBoardForm');
+
+            // 모달 열기 함수
+            function openModal(boardId, boardName) {
+                modalBoardName.textContent = "'" + boardName + "'";
+                deleteBoardForm.action = "{{ url_for('delete_board', board_id=0) }}".replace('0', boardId);
+                deleteBoardModal.classList.add('show');
+                deleteBoardModal.style.display = 'block';
+                document.body.classList.add('modal-open');
+            }
+
+            // 모달 닫기 함수
+            function closeModal() {
+                deleteBoardModal.classList.remove('show');
+                deleteBoardModal.style.display = 'none';
+                document.body.classList.remove('modal-open');
+            }
+
+            // 삭제 버튼 클릭 이벤트
+            deleteButtons.forEach(function(button) {
+                button.addEventListener('click', function() {
+                    var boardId = this.getAttribute('data-board-id');
+                    var boardName = this.getAttribute('data-board-name');
+                    openModal(boardId, boardName);
+                });
+            });
+
+            // 닫기 버튼 클릭 이벤트
+            closeButtons.forEach(function(button) {
+                button.addEventListener('click', closeModal);
+            });
+
+            // 모달 외부 클릭시 닫기
+            deleteBoardModal.addEventListener('click', function(e) {
+                if (e.target === deleteBoardModal) {
+                    closeModal();
+                }
+            });
+
+            // ESC 키로 모달 닫기
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape' && deleteBoardModal.classList.contains('show')) {
+                    closeModal();
+                }
+            });
+        });
+    </script>
+{% endblock %}
